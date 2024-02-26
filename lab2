@@ -1,0 +1,175 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+class Passenger {
+private:
+    string name;
+    string surname;
+    string gender;
+
+public:
+    Passenger(string name, string surname, string gender) : name(name), surname(surname), gender(gender) {}  // Passenger constructor initialization
+
+    string get_surname() const { return surname; }
+
+    void print() const {
+        cout << "Name: " << name << " " << surname << ", Gender: " << gender << endl;
+    }
+    
+    Passenger(const Passenger& other): name(other.name), surname(other.surname), gender(other.gender) {}  // passenger copy constructor
+};
+
+class Flight {
+private:
+    string flightno;
+    const int maxseat;
+    int passengernum;
+    vector<Passenger> passenger;
+
+public:
+    Flight(string flightno, int maxseat) : flightno(flightno), maxseat(maxseat), passengernum(0) {}   // flight constructor
+	
+	string get_flightno(){
+		return flightno;
+	}
+	
+    bool reserveseat(const Passenger& passengers) {
+        if (passengernum < maxseat) {
+            passenger.push_back(passengers);
+            passengernum++;
+            return true;
+        }
+
+        return false;
+    }
+
+    bool cancelReservation(const string& surname) {
+        for (size_t i{0}; i < passenger.size(); ++i) {
+            if (passenger[i].get_surname() == surname) {
+                passenger.erase(passenger.begin() + i);
+                passengernum--;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int numberofpassenger() const { return passengernum; }
+
+    void printpassenger() const {
+        if (passenger.empty()) {
+            cout << "No passenger has made reservation!" << endl;
+        }
+
+        vector<Passenger> sortedPassengers = passenger;  // creating a new vector and copying the passenger vector to it
+        sort(sortedPassengers.begin(), sortedPassengers.end(), [](const Passenger& a, const Passenger& b) {
+            return a.get_surname() < b.get_surname();
+        });
+
+        cout << "Passengers with reservations:\n";
+        for (const Passenger& passenger : sortedPassengers) {
+            passenger.print();
+        }
+    }
+
+    void displayMenu() const {
+        cout << "Flight Menu\n"
+             << "1. Reserve a ticket\n"
+             << "2. Cancel Reservation\n"
+             << "3. Check Reservation\n"
+             << "4. Display Passengers\n"
+             << "5. Exit\n";
+    }
+};
+
+
+class FlightManager{
+	
+private:
+	vector <Flight> flights;
+	int numberoflights;   // size of yazıcam sonra
+	
+public:
+	
+	void addFlight(const Flight& flight{
+		flight.push_back(flights);
+		flightnum++;
+		
+	}
+	void removeFlight(const string& flightNumber){
+		for (size_t i{0}; i < flights.size(); ++i) {
+            if (flights[i].get_flightno == flightNumber) {
+                flights.erase(fligts.begin() + i);
+                flightnum--;
+                cout << "Flight number: " << flightNumber << "removed."<< endl;
+            }
+        cout << "flight can not be found!"<< endl;
+	}
+	
+	void listAllFlights(){
+		for
+	}
+	
+	
+};
+
+int main() {
+    Flight flight("ABC123", 25);
+    int choice;
+
+    do {
+        flight.displayMenu();
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: {
+                string name, surname, gender;
+
+                cout << "Enter passenger's name: ";
+                cin >> name;
+                cout << "Enter passenger's surname: ";
+                cin >> surname;
+                cout << "Enter passenger's gender (M/F): ";
+                cin >> gender;
+
+                if (flight.reserveseat(Passenger(name, surname, gender))) {
+                    cout << "Reservation successful.\n";
+                } else {
+                    cout << "Sorry, the flight is full.\n";
+                }
+                break;
+            }
+            case 2: {
+                string surname;
+                cout << "Enter passenger's surname to cancel reservation: ";
+                cin >> surname;
+
+                if (flight.cancelReservation(surname)) {
+                    cout << "Reservation canceled successfully.\n";
+                } else {
+                    cout << "Passenger not found or no reservations exist.\n";
+                }
+                break;
+            }
+            case 3: {
+                int numPassengers = flight.numberofpassenger();
+                cout << "Number of passengers with reservations: " << numPassengers << endl;
+                break;
+            }
+            case 4:
+                flight.printpassenger();
+                break;
+            case 5:
+                cout << "Exiting program.\n";
+                break;
+            default:
+                cout << "Invalid choice. Please try again.\n";
+        }
+    } while (choice != 5);
+
+    return 0;
+}
