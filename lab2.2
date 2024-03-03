@@ -1,0 +1,312 @@
+#include <iostream>
+#include <iomanip>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <cctype>
+#include <iterator> // For std::begin and std::end
+
+using namespace std;
+class Seat {
+private:
+    string label;
+    bool occupied;
+
+public:
+    Seat() : label(""), occupied(false) {}
+    Seat(const string& label, bool occupied) : label(label), occupied(occupied) {}
+
+    string getLabel() const { return label; }
+    bool isOccupied() const { return occupied; }
+    void setLabel(const string& label) { this->label = label; }
+    void setOccupied(bool occupied) { this->occupied = occupied; }
+};
+
+class Passenger {
+private:
+    string name;
+    string surname;
+    char gender;
+    string seatLabel;
+
+public:
+    Passenger(const string& name, const string& surname, char gender, const string& seatLabel)
+        : name(name), surname(surname), gender(gender), seatLabel(seatLabel) {}
+
+    string getName() const { return name; }
+    string getSurname() const { return surname; }
+    char getGender() const { return gender; }
+    string getSeatLabel() const { return seatLabel; }
+};
+
+class Flight {
+private:
+    string flightNo;
+    string destination;
+    int numPassengers;
+    vector<vector<Seat>> seatingPlan;
+    vector<Passenger> passengers;
+
+public:
+    int maxSeats;
+    Flight(const string& flightNo, const string& destination, int maxSeats = 40)
+        : flightNo(flightNo), destination(destination), maxSeats(maxSeats), numPassengers(0) {
+        // Initialize seating plan with vacant seats
+        seatingPlan.resize(maxSeats / 4, vector<Seat>(4));
+        char label = 'A';
+        for (size_t i = 0; i < seatingPlan.size(); ++i) {
+            for (size_t j = 0; j < seatingPlan[i].size(); ++j) {
+                string seatLabel = to_string(i + 1) + label;
+                seatingPlan[i][j].setLabel(seatLabel);
+                label++;
+            }
+            label = 'A';
+        }
+    }
+
+    void displaySeatingPlan() const {
+        cout << "Seating Plan:" << endl;
+        cout << "-------------Front------------" << endl;
+        for (const auto& row : seatingPlan) {
+            for (const auto& seat : row) {
+            	cout << "| " << seat.getLabel() << " " << (seat.isOccupied() ? "X" : "O") << " ";
+            }
+            cout << "|" << endl;
+        }
+    }
+
+    bool reserveSeat(const string& seatLabel, const Passenger& passenger) {
+        for (auto& row : seatingPlan) {
+            for (auto& seat : row) {
+                if (seat.getLabel() == seatLabel && !seat.isOccupied()) {
+                    seat.setOccupied(true);
+                    passengers.push_back(passenger);
+                    numPassengers++;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool cancelReservation(const std::string& surname) {
+        auto it = find_if(passengers.begin(), passengers.end(), [&](const Passenger& p) {
+            return p.getSurname() == surname;
+        });
+
+        if (it != passengers.end()) {
+            passengers.erase(it);
+            numPassengers--;
+
+            // Mark seat as vacant
+            for (auto& row : seatingPlan) {
+                for (auto& seat : row) {
+                    if (seat.getLabel() == surname) {
+                        seat.setOccupied(false);
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    int numberOfPassengers() const { return numPassengers; }
+
+    void printPassengers() const {
+        if (passengers.empty()) {
+            cout << "No passengers have made reservations for this flight." << endl;
+            return;
+        }
+
+        cout << "Passenger List for Flight " << getFlightNumber() << ":" << endl;
+        cout << setw(4) << "Seat" << "|" << setw(20) << "Passenger Name" << "|" << "Gender" << endl;
+        cout << "----|--------------------|------" << endl;
+
+        for (const auto& passenger : passengers) {
+            cout << setw(4) << passenger.getSeatLabel() << "|" << setw(20) << passenger.getName() + " " + passenger.getSurname() << "|" << passenger.getGender() << endl;
+        }
+    }
+
+    bool isFlyingTo(const string& dest) const { return destination == dest; }
+
+    string getFlightNumber() const { return flightNo; }
+    string getDestination() const { return destination; }
+};
+
+class FlightManager {
+private:
+    std::vector<Flight> flights;
+
+public:
+    void addFlight(const Flight& flight) { flights.push_back(flight); }
+
+    void removeFlight(const string& flightNumber) {
+        auto it = find_if(flights.begin(), flights.end(), [&](const Flight& f) {
+            return f.getFlightNumber() == flightNumber;
+        });
+
+        if (it != flights.end()) {
+            flights.erase(it);
+            cout << "Flight " << flightNumber << " has been removed." << endl;
+        }
+		else {
+            cout << "Flight " << flightNumber << " not found." << endl;
+        }
+    }
+
+    void listAllFlights() const {
+        if (flights.empty()) {
+            cout << "No flights available." << endl;
+            return;
+        }
+
+        cout << setw(10) << "Flight No" << "|" << setw(20) << "Destination" << "|" << setw(15) << "Available Seats" << endl;
+        cout << "----------|--------------------|---------------" << std::endl;
+
+        for (const auto& flight : flights) {
+        	cout << setw(10) << flight.getFlightNumber() << "|" << setw(20) << flight.getDestination() << "|" << setw(15) << flight.maxSeats - flight.numberOfPassengers() << endl;
+        }
+    }
+
+    Flight* getFlightByNumber(const std::string& flightNumber) {
+        auto it = std::find_if(flights.begin(), flights.end(), [&](const Flight& f) {
+            return f.getFlightNumber() == flightNumber;
+        });
+
+        return (it != flights.end()) ? &(*it) : nullptr;
+    }
+
+    Flight* getFlightByDestination(const std::string& destination) {
+        auto it = std::find_if(flights.begin(), flights.end(), [&](const Flight& f) {
+            return f.isFlyingTo(destination);
+        });
+
+        return (it != flights.end()) ? &(*it) : nullptr;
+    }
+};
+
+void displayFlightManagementMenu() {
+    std::cout << "\nFlight Management Menu\n"
+              << "1. Add a Flight\n"
+              << "2. Remove a Flight\n"
+              << "3. List All Flights\n"
+              << "4. Select a Flight and Manage Passengers\n"
+              << "5. Exit\n";
+}
+
+void displayPassengerManagementMenu() {
+    std::cout << "\nPassenger Management Menu\n"
+              << "1. Reserve a Seat\n"
+              << "2. Cancel a Reservation\n"
+              << "3. View Passenger List\n"
+              << "4. Back to Flight Management Menu\n";
+}
+
+int main() {
+    FlightManager flightManager;
+    int choice;
+
+    do {
+        displayFlightManagementMenu();
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: {
+                std::string flightNo, destination;
+                int maxSeats;
+
+                cout << "Enter flight number: ";
+                cin >> flightNo;
+                cout << "Enter destination: ";
+                cin >> destination;
+                cout << "Enter maximum available seats: ";
+                cin >> maxSeats;
+
+                flightManager.addFlight(Flight(flightNo, destination, maxSeats));
+                break;
+            }
+            case 2: {
+                string flightNo;
+                cout << "Enter flight number to remove: ";
+                cin >> flightNo;
+                flightManager.removeFlight(flightNo);
+                break;
+            }
+            case 3:
+                flightManager.listAllFlights();
+                break;
+            case 4: {
+                string selectedFlightNo;
+                cout << "Enter flight number to manage passengers: ";
+                cin >> selectedFlightNo;
+
+                Flight* selectedFlight = flightManager.getFlightByNumber(selectedFlightNo);
+                if (selectedFlight) {
+                    int passengerChoice;
+                    do {
+                        displayPassengerManagementMenu();
+                        std::cout << "Enter your choice: ";
+                        std::cin >> passengerChoice;
+
+                        switch (passengerChoice) {
+                            case 1: {
+                                std::string name, surname, seatLabel;
+                                char gender;
+
+                                std::cout << "Enter passenger's name: ";
+                                std::cin >> name;
+                                std::cout << "Enter passenger's surname: ";
+                                std::cin >> surname;
+                                std::cout << "Enter passenger's gender (M/F): ";
+                                std::cin >> gender;
+
+                                selectedFlight->displaySeatingPlan();
+                                std::cout << "Enter seat label to reserve: ";
+                                std::cin >> seatLabel;
+
+                                if (selectedFlight->reserveSeat(seatLabel, Passenger(name, surname, gender, seatLabel))) {
+                                    std::cout << "Reservation successful." << std::endl;
+                                } else {
+                                    std::cout << "Seat is either occupied or does not exist." << std::endl;
+                                }
+                                break;
+                            }
+                            case 2: {
+                                std::string surname;
+                                std::cout << "Enter passenger's surname to cancel reservation: ";
+                                std::cin >> surname;
+                                if (selectedFlight->cancelReservation(surname)) {
+                                    std::cout << "Reservation canceled successfully." << std::endl;
+                                } else {
+                                    std::cout << "Passenger not found or no reservations exist." << std::endl;
+                                }
+                                break;
+                            }
+                            case 3:
+                                std::cout << "Passenger List for Flight " << selectedFlightNo << ":" << std::endl;
+                                selectedFlight->printPassengers();
+                                break;
+                            case 4:
+                                std::cout << "Returning to Flight Management Menu." << std::endl;
+                                break;
+                            default:
+                                std::cout << "Invalid choice. Please try again." << std::endl;
+                        }
+                    } while (passengerChoice != 4);
+                } else {
+                    std::cout << "Flight not found." << std::endl;
+                }
+                break;
+            }
+            case 5:
+                std::cout << "Exiting program." << std::endl;
+                break;
+            default:
+                std::cout << "Invalid choice. Please try again." << std::endl;
+        }
+    } while (choice != 5);
+
+    return 0;
+}
