@@ -1,0 +1,213 @@
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <forward_list>
+#include <algorithm>
+#include <ctime>
+
+using namespace std;
+
+// Define a class to represent a car
+class Car {
+public:
+    string type;
+    string brand;
+    string model;
+    int year;
+    bool rented;
+
+    Car(string t, string b, string m, int y) : type(t), brand(b), model(m), year(y), rented(false) {}
+};
+
+// Define a class to represent a customer
+class Customer {
+public:
+    string name;
+    string contact;
+    vector<string> bookingHistory;
+
+    Customer(string n, string c) : name(n), contact(c) {}
+};
+
+// Define the main application class
+class EliteDrive {
+private:
+    forward_list<Car> availableCars;
+    vector<Customer> customers;
+
+public:
+    EliteDrive() {
+        loadCars();
+    }
+
+    void loadCars() {
+        ifstream file("cars.txt");
+        if (file.is_open()) {
+            string line;
+            while (getline(file, line)) {
+                string type, brand, model;
+                int year;
+                stringstream ss(line);
+                getline(ss, type, ',');
+                getline(ss, brand, ',');
+                getline(ss, model, ',');
+                ss >> year;
+                availableCars.emplace_front(type, brand, model, year);
+            }
+            file.close();
+        }
+        else {
+            cerr << "Unable to open cars.txt" << endl;
+        }
+    }
+
+    void displayMenu() {
+        cout << "Welcome to EliteDrive Car Rental System" << endl;
+        cout << "1. Display Available Cars" << endl;
+        cout << "2. Rent a Car" << endl;
+        cout << "3. Return a Car" << endl;
+        cout << "4. Display Customer Information" << endl;
+        cout << "5. Register New Customer" << endl;
+        cout << "6. View Customer Accounts and Booking History" << endl;
+        cout << "7. Exit" << endl;
+    }
+
+    void displayAvailableCars() {
+        cout << "Available Cars:" << endl;
+        for (const auto& car : availableCars) {
+            cout << "Type: " << car.type << ", Brand: " << car.brand << ", Model: " << car.model << ", Year: " << car.year;
+            cout << ", Rental Status: " << (car.rented ? "Not Available" : "Available") << endl;
+        }
+    }
+
+    void rentCar(const string& brand, const string& model, const string& customerName) {
+        auto it = find_if(availableCars.begin(), availableCars.end(), [&](const Car& car) {
+            return car.brand == brand && car.model == model && !car.rented;
+            });
+        if (it != availableCars.end()) {
+            it->rented = true;
+            updateCustomerBookingHistory(customerName, brand + " " + model);
+            cout << "Car rented successfully." << endl;
+        }
+        else {
+            cout << "Car not available for rent." << endl;
+        }
+    }
+
+    void returnCar(const string& brand, const string& model, const string& customerName) {
+        auto it = find_if(availableCars.begin(), availableCars.end(), [&](const Car& car) {
+            return car.brand == brand && car.model == model && car.rented;
+            });
+        if (it != availableCars.end()) {
+            it->rented = false;
+            cout << "Car returned successfully." << endl;
+        }
+        else {
+            cout << "Car not found or not rented by " << customerName << "." << endl;
+        }
+    }
+
+    void displayCustomerInfo(const string& customerName) {
+        auto it = find_if(customers.begin(), customers.end(), [&](const Customer& customer) {
+            return customer.name == customerName;
+            });
+        if (it != customers.end()) {
+            cout << "Customer Name: " << it->name << ", Contact: " << it->contact << endl;
+            cout << "Booking History:" << endl;
+            for (const auto& booking : it->bookingHistory) {
+                cout << booking << endl;
+            }
+        }
+        else {
+            cout << "Customer not found." << endl;
+        }
+    }
+
+    void registerCustomer(const string& name, const string& contact) {
+        customers.emplace_back(name, contact);
+        cout << "Customer registered successfully." << endl;
+    }
+
+    void viewCustomerAccounts() {
+        cout << "Customer Accounts:" << endl;
+        for (const auto& customer : customers) {
+            cout << "Customer Name: " << customer.name << ", Contact: " << customer.contact << endl;
+        }
+    }
+
+    void updateCustomerBookingHistory(const string& customerName, const string& bookingDetails) {
+        auto it = find_if(customers.begin(), customers.end(), [&](const Customer& customer) {
+            return customer.name == customerName;
+            });
+        if (it != customers.end()) {
+            it->bookingHistory.push_back(bookingDetails);
+        }
+        else {
+            cerr << "Customer not found while updating booking history." << endl;
+        }
+    }
+
+    void run() {
+        int choice;
+        do {
+            displayMenu();
+            cout << "Enter your choice: ";
+            cin >> choice;
+            switch (choice) {
+            case 1:
+                displayAvailableCars();
+                break;
+            case 2: {
+                string brand, model, customerName;
+                cout << "Enter brand and model of the car to rent: ";
+                cin >> brand >> model;
+                cout << "Enter customer name: ";
+                cin >> customerName;
+                rentCar(brand, model, customerName);
+                break;
+            }
+            case 3: {
+                string brand, model, customerName;
+                cout << "Enter brand and model of the car to return: ";
+                cin >> brand >> model;
+                cout << "Enter customer name: ";
+                cin >> customerName;
+                returnCar(brand, model, customerName);
+                break;
+            }
+            case 4: {
+                string customerName;
+                cout << "Enter customer name: ";
+                cin >> customerName;
+                displayCustomerInfo(customerName);
+                break;
+            }
+            case 5: {
+                string name, contact;
+                cout << "Enter customer name: ";
+                cin >> name;
+                cout << "Enter contact details: ";
+                cin >> contact;
+                registerCustomer(name, contact);
+                break;
+            }
+            case 6:
+                viewCustomerAccounts();
+                break;
+            case 7:
+                cout << "Exiting application." << endl;
+                break;
+            default:
+                cout << "Invalid choice. Please try again." << endl;
+            }
+        } while (choice != 7);
+    }
+};
+
+int main() {
+    EliteDrive app;
+    app.run();
+    return 0;
+}
