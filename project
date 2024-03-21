@@ -9,7 +9,6 @@
 
 using namespace std;
 
-// Define a class to represent a car
 class Car {
 public:
     string type;
@@ -21,21 +20,66 @@ public:
     Car(string t, string b, string m, int y) : type(t), brand(b), model(m), year(y), rented(false) {}
 };
 
-// Define a class to represent a customer
 class Customer {
+private:
+    struct BookingNode {
+        string booking;
+        BookingNode* next;
+
+        BookingNode(const string& b, BookingNode* n = nullptr) : booking(b), next(n) {}
+    };
+
+    BookingNode* head;
+
 public:
     string name;
     string contact;
-    vector<string> bookingHistory;
 
-    Customer(string n, string c) : name(n), contact(c) {}
+    Customer(string n, string c) : name(n), contact(c), head(nullptr) {}
+
+    void addBooking(const string& booking) {
+        if (!head) {
+            head = new BookingNode(booking);
+        } else {
+            BookingNode* newNode = new BookingNode(booking, head);
+            head = newNode;
+        }
+    }
+
+    void displayBookingHistory() const {
+        cout << "Booking History:" << endl;
+        BookingNode* current = head;
+        while (current) {
+            cout << current->booking << endl;
+            current = current->next;
+        }
+    }
+    
+    friend ostream& operator<<(ostream& os, const Customer& customer) {
+        os << "Customer Name: " << customer.name << ", Contact: " << customer.contact << endl;
+        os << "Booking History:" << endl;
+        BookingNode* current = customer.head;
+        while (current) {
+            os << current->booking << endl;
+            current = current->next;
+        }
+        return os;
+    }
+
+    ~Customer() {
+        while (head) {
+            BookingNode* temp = head;
+            head = head->next;
+            delete temp;
+        }
+    }
 };
 
-// Define the main application class
+
 class EliteDrive {
 private:
     forward_list<Car> availableCars;
-    vector<Customer> customers;
+    forward_list<Customer> customers; 
 
 public:
     EliteDrive() {
@@ -68,7 +112,7 @@ public:
         cout << "1. Display Available Cars" << endl;
         cout << "2. Rent a Car" << endl;
         cout << "3. Return a Car" << endl;
-        cout << "4. Display Customer Information" << endl;
+        cout << "4. Display Customer Information and Booking History" << endl;
         cout << "5. Register New Customer" << endl;
         cout << "6. View Customer Accounts and Booking History" << endl;
         cout << "7. Exit" << endl;
@@ -115,10 +159,7 @@ public:
             });
         if (it != customers.end()) {
             cout << "Customer Name: " << it->name << ", Contact: " << it->contact << endl;
-            cout << "Booking History:" << endl;
-            for (const auto& booking : it->bookingHistory) {
-                cout << booking << endl;
-            }
+            it->displayBookingHistory();
         }
         else {
             cout << "Customer not found." << endl;
@@ -126,23 +167,25 @@ public:
     }
 
     void registerCustomer(const string& name, const string& contact) {
-        customers.emplace_back(name, contact);
+        customers.emplace_front(name, contact); // emplace_front for forward_list
         cout << "Customer registered successfully." << endl;
     }
 
     void viewCustomerAccounts() {
-        cout << "Customer Accounts:" << endl;
-        for (const auto& customer : customers) {
-            cout << "Customer Name: " << customer.name << ", Contact: " << customer.contact << endl;
-        }
+    cout << "Customer Accounts and Booking History:" << endl;
+    for (const auto& customer : customers) {
+        cout << "Customer Name: " << customer.name << ", Contact: " << customer.contact << endl;
+        customer.displayBookingHistory();
+        cout << endl;
     }
+}
 
     void updateCustomerBookingHistory(const string& customerName, const string& bookingDetails) {
         auto it = find_if(customers.begin(), customers.end(), [&](const Customer& customer) {
             return customer.name == customerName;
             });
         if (it != customers.end()) {
-            it->bookingHistory.push_back(bookingDetails);
+            it->addBooking(bookingDetails);
         }
         else {
             cerr << "Customer not found while updating booking history." << endl;
