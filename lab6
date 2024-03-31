@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 
 class Node {
 public:
@@ -12,159 +13,133 @@ using namespace std;
 class UnorderedSet {
 private:
     Node* head;
-    
+
 public:
     UnorderedSet() : head(nullptr) {}
 
     // Destructor
     ~UnorderedSet() {
-    	while(head!= nullptr){
-    		previous= head;
-    		head= head->next;
-    		delete previous;
-    		
-		}
+        clear();
     }
 
-    //insert an element into the set
+    // Insert an element into the set
     void insert(int value) {
-        // Implement insertion algorithms(simplest that you know)
         Node *current = head;
-        while(current!= nullptr){
-        	if(current->data==value)
-        		return;
-        	current=current-next;
-        	
-        		
-		}
-		
-		Node* newnode= new Node(value);
-		newnode->next= head;
-		head= newnode;
-		
-		
+        while (current != nullptr) {
+            if (current->data == value)
+                return;
+            current = current->next;
+        }
+        Node* newnode = new Node(value);
+        newnode->next = head;
+        head = newnode;
     }
 
-    //remove an element from the set
+    // Remove an element from the set
     void remove(int value) {
-        if (index < 0) {
-        throw out_of_range("Index out of range: Index is negative");
-    	}
-
-    	if (index == 0) {
-        pop_front();
-        return;
-    	}
-
-	    Node* prev = nullptr;
-	    Node* current = head;
-	    int count = 0;
-	    while (current != nullptr && count < index) {
-	        prev = current;
-	        current = current->next;
-	        count++;
-	    }
-	
-	    if (current == nullptr) {
-	        throw out_of_range("Index out of range");
-	    }
-	
-	    prev->next = current->next;
-	
-	    Node* removedNode = current;
-	    delete removedNode;
-			
-		
-		
-        
+        Node* prev = nullptr;
+        Node* current = head;
+        while (current != nullptr && current->data != value) {
+            prev = current;
+            current = current->next;
+        }
+        if (current == nullptr) {
+            throw out_of_range("Value not found in set");
+        }
+        if (prev != nullptr) {
+            prev->next = current->next;
+        } else {
+            head = current->next;
+        }
+        delete current;
     }
 
-    //check if an element exists in the set
+    // Check if an element exists in the set
     bool contains(int value) const {
-        //your implementation
-        Node *current = head;
-        while(current!= nullptr){
-        	if(current->data==value)
-        		return true;
-        	current=current-next;
-        	
-        		
-		}
-        
+        Node* current = head;
+        while (current != nullptr) {
+            if (current->data == value)
+                return true;
+            current = current->next;
+        }
         return false;
     }
 
-    //get the size of the set
+    // Get the size of the set
     int size() const {
-        // your implementation to return the size of the set
-        int count=0;
-        while(current!= nullptr){
-        	current=current-next;
-        	count ++;
-        	
-        		
-		}
-        
+        int count = 0;
+        Node* current = head;
+        while (current != nullptr) {
+            current = current->next;
+            count++;
+        }
         return count;
     }
 
-    //check if the set is empty
+    // Check if the set is empty
     bool isEmpty() const {
-        if(head==nullptr)
-        	return true;
-        else()
-        	return false;
+        return head == nullptr;
     }
 
-    //clear the set
+    // Clear the set
     void clear() {
-        // your implementation to clear the set and deallocate memory
         while (head != nullptr) {
-        	Node* temp = head;
-        	head = head->next;
-        	delete temp;
-    	}
-    }
-
-    void printSet() const {
-        // display the set elements
-        Node* current= head;
-        while(current!=nullptr){
-        	cout << current->data << endl;
-        	current=current->next;
-        	
-		}
-    }
-
-    //compute the intersection of two sets
-    UnorderedSet intersection(const UnorderedSet& other) const {
-    UnorderedSet result;
-    // Iterate over each element in the current set
-    for (const auto& element : *this) {
-        if (this.contains(element) != other.contains(element)) {
-            result.insert(element);
+            Node* temp = head;
+            head = head->next;
+            delete temp;
         }
     }
-    return result;
-}
 
-    //compute the union of two sets
-    UnorderedSet setUnion(const UnorderedSet& other) const {
-        UnorderedSet result;
-        // your implementation to compute union
-        for (const auto& element : *this) {
-        	if (this.contains(element) != other.contains(element)) {
-            result.insert(element);
-        	}
+    // Display the set elements
+    void printSet() const {
+        Node* current = head;
+        while (current != nullptr) {
+            cout << current->data << endl;
+            current = current->next;
+        }
     }
-        
+
+    // Compute the intersection of two sets
+    UnorderedSet intersection(const UnorderedSet& other) const {
+        UnorderedSet result;
+        Node* current = head;
+        while (current != nullptr) {
+            if (other.contains(current->data)) {
+                result.insert(current->data);
+            }
+            current = current->next;
+        }
         return result;
     }
 
-    //compute the set difference of two sets
+    // Compute the union of two sets
+    UnorderedSet setUnion(const UnorderedSet& other) const {
+        UnorderedSet result = *this; // Copy constructor
+        Node* current = other.head;
+        while (current != nullptr) {
+            if (!result.contains(current->data)) {
+                result.insert(current->data);
+            }
+            current = current->next;
+        }
+        return result;
+    }
+
+    // Compute the set difference of two sets
     UnorderedSet setDifference(const UnorderedSet& other) const {
-        UnorderedSet result;
-        // your implementation to compute set difference
+        UnorderedSet result = *this; // Copy constructor
+        Node* current = other.head;
+        while (current != nullptr) {
+            if (result.contains(current->data)) {
+                result.remove(current->data);
+            }
+            current = current->next;
+        }
         return result;
     }
 };
+
+int main(){
+	
+	return 0;
+}
