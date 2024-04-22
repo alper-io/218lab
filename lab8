@@ -1,11 +1,10 @@
 #include<iostream>
 #include<cctype>
-#include<cstdlib>
-#include<string>
-
+#include<cstring>
+#include<queue>
 using namespace std;
 
-const int MAX_SIZE = 10000;
+const int MAX_SIZE = 10000; // Maximum size of the stack
 
 template<typename T>
 class Stack {
@@ -17,6 +16,7 @@ public:
     Stack(int sz = 100) : topIndex(-1), stackSize(sz) {
         if (sz > MAX_SIZE) {
             cout << "System Error: Size cannot be greater than " << MAX_SIZE << endl;
+            exit(EXIT_FAILURE);
         }
     }
 
@@ -74,39 +74,42 @@ double calc(double op1, double op2, char op) {
     return 0.0;
 }
 
-double evalPosftix(const char* postFix) {
+int evalPosftix(const char* postFix) {
     Stack<double> s;
     while (*postFix != '\0') {
-        if (isOperand(*postFix)) {
+        if (isOperand(*postFix)) 
             s.push(*postFix - '0');
-        } else if (isOperator(*postFix)) {
+        else if (isOperator(*postFix)) {
             if (s.isEmpty()) {
-                cout << "Error: Missing operand." << endl;
-                exit(EXIT_FAILURE);
+                cout << "\nError in expression (at least one operand is missing";
+                exit(0);
             }
             double op2 = s.pop();
             if (s.isEmpty()) {
-                cout << "Error: Missing operand." << endl;
-                exit(EXIT_FAILURE);
+                cout << "\nError in expression (at least one operand is missing";
+                exit(0);
             }
             double op1 = s.pop();
             double res = calc(op1, op2, *postFix);
             s.push(res);
         }
-        ++postFix;
+        else if (!isspace(*postFix)) {
+            cout << "Undefined symbol:" << *postFix << endl;
+            exit(0);
+        }
+        postFix++;
     }
     if (s.isEmpty()) {
-        cout << "Error: Missing operator." << endl;
-        exit(EXIT_FAILURE);
+        cout << "\nError in expression (at least one operator is missing";
+        exit(0);
     }
-    double result = s.pop();
+    double potentialRes = s.pop();
     if (!s.isEmpty()) {
-        cout << "Error: Missing operator." << endl;
-        exit(EXIT_FAILURE);
+        cout << "\nError in expression (at least one operator is missing";
+        exit(0);
     }
-    return result;
+    return potentialRes;
 }
-
 char* myStrcpy(char* t, const char* src) {
     int i = 0;
     while (*src != '\0') 
@@ -117,66 +120,53 @@ char* myStrcpy(char* t, const char* src) {
 
 void postFixToInfix(const char* postFix, char* infix) {
     Stack<string> s;
-
+    queue<string> q;
+    
     while (*postFix != '\0') {
-        char symb = *postFix;
-
-        if (isOperand(symb)) {
-            string s1(1, symb);  // Create a string from the char
-            s.push(s1);
-        } 
-        else if (isOperator(symb)) {
-            if (s.isEmpty()) {
-                cout << "\n1. Error in expression (at least one operand is missing";
+        if (isOperand(*postFix)) {
+            string s1(1, *postFix);
+            q.push(s1);
+        }
+        else if (isOperator(*postFix)) {
+            if (q.size() < 2) {
+                cout << "\nError in expression (at least one operand is missing";
                 exit(0);
             }
-            string op2 = s.pop();
-            if (s.isEmpty()) {
-                cout << "\n2. Error in expression (at least one operand is missing";
-                exit(0);
-            }
-            string oprt(1, symb);  // Create a string from the char
-            string op1 = s.pop();
-            string subExp = "(" + op1 + oprt + op2 + ")";
-            s.push(subExp);
-        } 
-        else if (!isspace(symb)) {
-            cout << "Undefined symbol:" << symb << endl;
+            string op1 = q.front(); // First pop is the first operand
+            q.pop();
+            string op2 = q.front(); // Second pop is the second operand
+            q.pop();
+            string subExp = "(" + op1 + *postFix + op2 + ")";
+            q.push(subExp);
+        }
+        else if (!isspace(*postFix)) {
+            cout << "Undefined symbol:" << *postFix << endl;
             exit(0);
         }
-
         postFix++;
     }
-
-    if (s.isEmpty()) {
-        cout << "\n3. Error in expression (at least one operator is missing";
+    
+    if (q.size() != 1) {
+        cout << "\nError in expression (at least one operator is missing";
         exit(0);
     }
-
-    string potentialInfix = s.pop();
-
-    if (!s.isEmpty()) {
-        cout << "\n4. Error in expression (at least one operator is missing";
-        exit(0);
-    }
-
+    
+    string potentialInfix = q.front();
+    q.pop();
     myStrcpy(infix, potentialInfix.c_str());
 }
 
+
+
+
+
 int main() {
-    char postFix[] = "45+7*2-"; 
-
-    // Evaluate the postfix expression
-    double result = evalPosftix(postFix);
-    cout << postFix << " evaluates to: " << result << endl;
-
-    // Copy the postfix expression for infix conversion
-    char copyPostFix[500];
-    myStrcpy(copyPostFix, postFix);
-
+    char postFix[] = "45+7*2-";
+    cout << postFix << " evaluates to: " << evalPosftix(postFix) << endl;
+    
     char infix[500];
-    postFixToInfix(copyPostFix, infix);
-    cout << postFix << " is equivalent to: " << infix << endl;
+    postFixToInfix(postFix, infix);
+    cout << postFix << " is Equivalent to:  " << infix << endl;
 
     return 0;
 }
