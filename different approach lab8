@@ -1,0 +1,95 @@
+#include <iostream>
+#include <queue>
+#include <stack>
+#include <string>
+
+using namespace std;
+
+bool isOperator(char x) {
+    switch (x) {
+        case '+':
+        case '-':
+        case '/':
+        case '*':
+            return true;
+    }
+    return false;
+}
+
+int performOperation(int a, int b, char op) {
+    switch(op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': return a / b;
+    }
+    return -1;
+}
+
+int postfixEvaluate(queue<char>& post_exp) {
+    stack<int> s;
+
+    while (!post_exp.empty()) {
+        char exp = post_exp.front();
+        post_exp.pop();
+
+        if (isOperator(exp)) {
+            int op2 = s.top(); s.pop();
+            int op1 = s.top(); s.pop();
+            s.push(performOperation(op1, op2, exp));
+        } else {
+            // Convert character to integer
+            s.push(exp - '0');
+        }
+    }
+
+    return s.top();
+}
+
+string postFixToInfix(queue<char>& post_exp) {
+    stack<string> s;
+
+    while (!post_exp.empty()) {
+        char exp = post_exp.front();
+        post_exp.pop();
+
+        if (isOperator(exp)) {
+            if (s.size() < 2) {
+                cerr << "Invalid postfix expression" << endl;
+                exit(EXIT_FAILURE);
+            }
+            string op2 = s.top(); s.pop();
+            string op1 = s.top(); s.pop();
+            string temp = "(" + op1 + string(1, exp) + op2 + ")";
+            s.push(temp);
+        } else {
+            // Convert character to string
+            s.push(string(1, exp));
+        }
+    }
+
+    if (s.size() != 1) {
+        cerr << "Invalid postfix expression" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    return s.top();
+}
+
+int main() {
+    string postFix = "45+7*2-";
+    queue<char> post_exp;
+    for (char c : postFix) {
+        post_exp.push(c);
+    }
+    
+    // Create a copy of post_exp for postfixEvaluate
+    queue<char> post_exp_copy1 = post_exp;
+    cout << postFix << " evaluates to: " << postfixEvaluate(post_exp_copy1) << endl;
+    
+    // Create another copy of post_exp for postFixToInfix
+    queue<char> post_exp_copy2 = post_exp;
+    cout << postFix << " is equivalent to: " << postFixToInfix(post_exp_copy2) << endl;
+
+    return 0;
+}
