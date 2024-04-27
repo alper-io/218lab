@@ -1,0 +1,202 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <unordered_map>
+#include <algorithm>
+#include <vector>
+#include <chrono>
+#include <dirent.h> // For directory manipulation
+#include <cstring>  // For strcpy
+#include <sstream>  // For istringstream
+
+using namespace std;
+
+class FileNode {
+public:
+    string data;
+    FileNode* next;
+    FileNode(string data) : data(data), next(nullptr) {}
+};
+
+class ListNode {
+public:
+    string data;
+    ListNode* next;
+    FileNode* files;
+    ListNode(string data) : data(data), next(nullptr), files(nullptr) {}
+};
+
+unordered_map<string, ListNode*> index_files(const string& directory) {
+    unordered_map<string, ListNode*> word_index;
+    ifstream file;
+    string line, word, cleaned_word;
+    DIR* dir;
+    struct dirent* entry;
+
+    // Open the directory
+    if ((dir = opendir(directory.c_str())) != nullptr) {
+        // Iterate over each entry in the directory
+        while ((entry = readdir(dir)) != nullptr) {
+#if defined(_WIN32)
+            if (entry->d_type == DT_REG || entry->d_type == DT_UNKNOWN) { // Regular file or unknown type
+#else
+            if (entry->d_type == DT_REG) { // Regular file
+#endif
+                string filename = entry->d_name;
+                file.open(directory + "/" + filename);
+
+                if (file.is_open()) {
+                    // Read each line from the file
+                    while (getline(file, line)) {
+                        transform(line.begin(), line.end(), line.begin(), ::tolower);
+                        istringstream iss(line);
+                        // Extract words from the line
+                        while (iss >> word) {
+                            cleaned_word = "";
+                            // Clean and normalize the word
+                            for (char c : word) {
+                                if (isalpha(c)) {
+                                    cleaned_word += tolower(c);
+                                }
+                            }
+
+                            // Add the word to the index
+                            if (!cleaned_word.empty()) {
+                                if (word_index.find(cleaned_word) == word_index.end()) {
+                                    word_index[cleaned_word] = new ListNode(cleaned_word);
+                                }
+
+                                ListNode* current_word_node = word_index[cleaned_word];
+
+                                // Add the file to the word's list of files
+                                if (!current_word_node->files || current_word_node->files->data != filename) {
+                                    FileNode* new_file_node = new FileNode(filename);
+                                    new_file_node->next = current_word_node->files;
+                                    current_word_node->files = new_file_node;
+                                }
+                            }
+                        }
+                    }
+
+                    file.close();
+                } else {
+                    cerr << "Error: Unable to open file " << directory << "/" << filename << endl;
+                }
+            }
+        }
+
+        closedir(dir);
+    } else {
+        cerr << "Error: Unable to open directory " << directory << endl;
+    }
+
+    return word_index;
+}
+
+void menu(const unordered_map<string, ListNode*>& word_index) {
+    while (true) {
+        cout << "\nSimple Document Retrieval System\n";
+        cout << "1. Enter a single keyword to list the document(s)(file names)\n";
+        cout << "2. Print the top 10 words that appeared most frequently\n";
+        cout << "3. Print the top 10 words that appeared least frequently\n";
+        cout << "4. Exit\n";
+
+        char choice;
+        cin >> choice;
+
+        switch (choice) {
+            case '1': {
+                string keyword;
+                cout << "Enter keyword: ";
+                cin >> keyword;
+                transform(keyword.begin(), keyword.end(), keyword.begin(), ::tolower);
+
+                if (word_index.find(keyword) != word_index.end()) {
+                    FileNode* file_node = word_index.at(keyword)->files;
+
+                    cout << "Files containing '" << keyword << "': " << endl;
+
+                    while (file_node) {
+                        cout << file_node->data << " " << endl;
+                        file_node = file_node->next;
+                    }
+
+                    cout << endl;
+                } else {
+                    cout << "No documents found containing '" << keyword << "'" << endl;
+                }
+
+                break;
+            }
+            case '2': {
+                vector<pair<string, int>> frequency;
+
+                for (const auto& pair : word_index) {
+                    frequency.push_back({ pair.first, 0 });
+                    FileNode* file_node = pair.second->files;
+
+                    while (file_node) {
+                        frequency.back().second++;
+                        file_node = file_node->next;
+                    }
+                }
+
+                sort(frequency.begin(), frequency.end(), [](const auto& a, const auto& b) {
+                    return a.second > b.second;
+                });
+
+                cout << "Top 10 words appeared most frequently:" << endl;
+
+                for (int i = 0; i < 10 && i < frequency.size(); ++i) {
+                    cout << frequency[i].first << ": " << frequency[i].second << " times" << endl;
+                }
+
+                break;
+            }
+            case '3': {
+                vector<pair<string, int>> frequency;
+
+                for (const auto& pair : word_index) {
+                    frequency.push_back({ pair.first, 0 });
+                    FileNode* file_node = pair.second->files;
+
+                    while (file_node) {
+                        frequency.back().second++;
+                        file_node = file_node->next;
+                    }
+                }
+
+                sort(frequency.begin(), frequency.end(), [](const auto& a, const auto& b) {
+                    return a.second < b.second;
+                });
+
+                cout << "Top 10 words appeared least frequently:" << endl;
+
+                for (int i = 0; i < 10 && i < frequency.size(); ++i) {
+                    cout << frequency[i].first << ": " << frequency[i].second << " times" << endl;
+                }
+
+                break;
+            }
+            case '4':
+                cout << "Exiting..." << endl;
+                return;
+            default:
+                cout << "Invalid choice. Please enter a valid option." << endl;
+                break;
+        }
+    }
+}
+
+int main() {
+    auto start_time = chrono::high_resolution_clock::now();
+    string directory = "C:\\Users\\Admin\\Desktop\\project\\AllDocs";
+    auto word_index = index_files(directory);
+    menu(word_index);
+    auto end_time = chrono::high_resolution_clock::now();
+
+    auto duration = chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
+    cout << "Index creation time: " << duration.count() << " seconds" << endl;
+
+    return 0;
+}
